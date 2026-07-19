@@ -10,8 +10,7 @@ def home():
 
 # Token များကို ဖြည့်စွက်ရန်
 TELEGRAM_BOT_TOKEN = "8609626698:AAFX9be-pwkM7nn_vMRTwx-1ut97HfMhhmQ"
-SHRINKME_API_TOKEN = "8697573017b03e9d1adb33a3afb0f9c27e52b793
-"
+SHRINKME_API_TOKEN = "8697573017b03e9d1adb33a3afb0f9c27e52b793"
 
 bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
 
