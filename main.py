@@ -16,7 +16,7 @@ bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
 
 # ဇာတ်ကားနာမည်နှင့် အပိုင်း (၁) မှ ရလာသည့် Private Channel လင့်ခ်များကို တွဲထည့်ရန်
 MOVIE_DATABASE = {
-    "Green Mile": "https://t.me/c/4321974022/5",  # နမူနာပြထားခြင်းဖြစ်သည်
+    "green mile": "https://t.me/c/4321974022/5",  # နမူနာပြထားခြင်းဖြစ်သည်
     
 }
 
@@ -32,7 +32,7 @@ def get_shrinkme_link(long_url):
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.reply_to(message, "မင်္ဂလာပါ။ 🎬 ဇာတ်ကားနာမည် ရိုက်ရှာနိုင်ပါတယ်ဗျာ။")
+    bot.reply_to(message, "မင်္ဂလာပါ။ 🎬 ဇာတ်ကားနာမည် ကိုအသေးစာလုံးဖြင့် ရိုက်ရှာနိုင်ပါတယ်ဗျာ။")
 
 @bot.message_handler(func=lambda message: True)
 def search_movie(message):
