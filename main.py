@@ -62,7 +62,7 @@ def send_welcome(message):
         "၂။ ⏳ ၂ မိနစ်ပြည့်ပါက အလိုအလျောက်ပျက်သည့်စနစ် မရှိဘဲ စိတ်ကြိုက် ပြန်ကြည့်နိုင်ခြင်း။\n"
         "၃။ 📺 Netflix စီးရီးတွဲများနှင့် ဇာတ်လမ်းတွဲ အစအဆုံးများကို Exclusive ကြည့်ရှုနိုင်ခြင်း။\n"
         "၄။ 💬 မိမိကြည့်ချင်သော ဇာတ်ကားများကို Admin ထံ တိုက်ရိုက်တောင်းဆိုနိုင်ခြင်း။\n\n"
-        f"👉 လူကြီးမင်း VIP ဝင်ရန်အတွက် Admin အကောင့် https://t.me/{Lynn_subflix528} သို့ ချက်ချင်း ဆက်သွယ်လိုက်ပါဗျာ။"
+        f"👉 လူကြီးမင်း VIP ဝင်ရန်အတွက် Admin အကောင့် https://t.me/Lynn_subflix528 သို့ ချက်ချင်း ဆက်သွယ်လိုက်ပါဗျာ။"
     )
     )
     bot.reply_to(message, welcome_text, parse_mode="Markdown", disable_web_page_preview=True)
