@@ -1,87 +1,74 @@
-import telebot
 import os
 import time
 import threading
-from flask import Flask
+import telebot
+from flask import Flask, request
 
-app = Flask('')
-@app.route('/')
-def home():
-    return "Bot is alive!"
+# Telegram Bot Token သတ်မှတ်ခြင်း
+BOT_TOKEN = "8609626698:AAFX9be-pwkM7nn_vMRTwx-1ut97HfMhhmQ"
+bot = telebot.TeleBot(BOT_TOKEN)
 
-# ၁။ ပြင်ဆင်ရန် - သင့်ရဲ့ Bot Token ကို သေချာပြန်ထည့်ပါ
-TELEGRAM_BOT_TOKEN = "8609626698:AAFX9be-pwkM7nn_vMRTwx-1ut97HfMhhmQ"
-bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
+# Webhook အတွက် Flask App
+app = Flask(__name__)
 
-# ၂။ ပြင်ဆင်ရန် - သင့်ရဲ့ Telegram အကောင့် Username ကို @ မပါဘဲ ထည့်ပါ
-ADMIN_USERNAME = "Lynn_subflix528" 
-
-# ဇာတ်ကား Database (လင့်ခ်နေရာတွင် Telegram ကားဖိုင် Post Link ကို ထည့်ပါ)
-MOVIE_DATABASE = {
-    "green mile": "https://t.me/c/4321974022/5", 
-}
-
-# ဇာတ်ကားကို ၂ မိနစ် (စက္ကန့် ၁၂၀) ပြည့်ရင် Auto ဖျက်မည့် Function
-def delete_message_after_delay(chat_id, message_id, delay=120):
-    time.sleep(delay)
+# ဖိုင်ကို ၂ မိနစ် (စက္ကန့် ၁၂၀) ပြည့်ရင် Auto ဖျက်မည့် Function
+def auto_delete_message(chat_id, message_id):
+    time.sleep(120)  # ၂ မိနစ် စောင့်ဆိုင်းခြင်း
     try:
         bot.delete_message(chat_id, message_id)
     except Exception as e:
         print(f"Error deleting message: {e}")
 
-# ဇာတ်ကားပေးပို့ပြီး Auto-Delete လုပ်မည့် စနစ်
-def send_movie_and_manage(chat_id, movie_key):
-    target_movie = MOVIE_DATABASE[movie_key]
-    
-    warning_text = (
-        f"🎬 **လူကြီးမင်းတောင်းဆိုထားသော ဇာတ်ကား ရောက်ပါပြီဗျာ**\n\n"
-        f"🔗 [ဒီလင့်ခ်ကိုနှိပ်ပြီး ဇာတ်ကားကြည့်ပါ/ဒေါင်းပါ]({target_movie})\n\n"
-        f"Copyright ဥပဒေကြောင့် ဤစာသည် **၂ မိနစ်** ပြည့်ပါက အလိုအလျောက် ပျက်သွားပါလိမ့်မည်။ "
-        f"အမြဲသိမ်းဆည်းထားလိုပါက ယခုစာကို ဖိနှိပ်၍ လူကြီးမင်း၏ **Saved Messages** ထဲသို့ ချက်ချင်း Forward လုပ်ပြီး သိမ်းဆည်းထားပါဗျို့။"
-    )
-    
-    sent_msg = bot.send_message(chat_id, warning_text, parse_mode="Markdown")
-    threading.Thread(target=delete_message_after_delay, args=(chat_id, sent_msg.message_id, 120)).start()
-
-# /start လင့်ခ်မှတစ်ဆင့် ဝင်လာလျှင်
+# Public Channel က လင့်ခ်နှိပ်ပြီး ဝင်လာချိန် (ဥပမာ - t.me/your_bot?start=movie_id_001)
 @bot.message_handler(commands=['start'])
-def send_welcome(message):
-    args = message.text.split()
-    if len(args) > 1:
-        movie_key = args[1].replace("_", " ").lower()
-        if movie_key in MOVIE_DATABASE:
-            send_movie_and_manage(message.chat.id, movie_key)
-            return
-            
-   welcome_text = (
-        "မင်္ဂလာပါ။ 🎬 ဇာတ်ကားနာမည်ကို စာလုံးအသေးဖြင့် ရိုက်နှိပ်ရှာဖွေနိုင်ပါတယ်ဗျာ။\n"
-        "ဥပမာ - green mile\n\n"
-        "👑 **VIP Movie Channel အစီအစဉ်** 👑\n"
-        "တစ်လလျှင် ၅,၀၀0 ကျပ်တည်းဖြင့် VIP Member ဝင်ရောက်ပြီး အောက်ပါ အထူးအခွင့်အရေးများကို ရယူပါ -\n\n"
-        "၁။ 🎬 ဇာတ်ကားများကို လင့်ခ်ကျော်စရာမလိုဘဲ တိုက်ရိုက် (Direct File) ကြည့်ရှုနိုင်ခြင်း။\n"
-        "၂။ ⏳ ၂ မိနစ်ပြည့်ပါက အလိုအလျောက်ပျက်သည့်စနစ် မရှိဘဲ စိတ်ကြိုက် ပြန်ကြည့်နိုင်ခြင်း။\n"
-        "၃။ 📺 Netflix စီးရီးတွဲများနှင့် ဇာတ်လမ်းတွဲ အစအဆုံးများကို Exclusive ကြည့်ရှုနိုင်ခြင်း။\n"
-        "၄။ 💬 မိမိကြည့်ချင်သော ဇာတ်ကားများကို Admin ထံ တိုက်ရိုက်တောင်းဆိုနိုင်ခြင်း။\n\n"
-        "👉 လူကြီးမင်း VIP ဝင်ရန်အတွက် Admin အကောင့် https://t.me/Lynn_subflix528 သို့ ချက်ချင်း ဆက်သွယ်လိုက်ပါဗျာ။"
-    )
-    bot.reply_to(message, welcome_text, parse_mode="Markdown", disable_web_page_preview=True)
-
-# စာသားရိုက်ရှာလျှင်
-@bot.message_handler(func=lambda message: True)
-def search_movie(message):
-    search_query = message.text.lower().strip()
+def send_movie_and_vip_info(message):
+    chat_id = message.chat.id
+    command_args = message.text.split()
     
-    if search_query in MOVIE_DATABASE:
-        send_movie_and_manage(message.chat.id, search_query)
-    else:
-        fail_text = (
-            "❌ စိတ်မကောင်းပါဘူးဗျာ၊ အဲဒီဇာတ်ကားက ကျွန်ုပ်တို့ Database ထဲမှာ မရှိသေးပါဘူး။\n\n"
-            "👑 တရုတ်/ကိုရီးယားဇာတ်လမ်းတွဲများ၊ အသစ်ထွက်ရုပ်ရှင်များနှင့် Netflix မှရုပ်ရှင်များကို တစ်လ ၅,၀၀၀ ကျပ်တည်းဖြင့် VIP Memberအဖြစ်ဝင်ရောက်ကြည့်ရှုနိုင်ပါတယ်။\n"
-            f"👉 Vip ဝင်ရန် Admin acc - @{Lynn_subflix528} ကို ဆက်သွယ်လိုက်ပါဗျို့။"
-        )
-        bot.reply_to(message, fail_text)
+    # VIP ကြော်ငြာနှင့် လမ်းညွှန်စာသား
+    welcome_text = (
+        "မင်္ဂလာပါ။ 🎬 ဇာတ်ကားကို သင့်အတွက် အောက်မှာ တိုက်ရိုက် ပို့ပေးထားပါတယ်ဗျာ။\n\n"
+        "⚠️ **သတိပေးချက်** ⚠️\n"
+        "မူပိုင်ခွင့် (Copyright) ဥပဒေအရ ဤဇာတ်ကားဖိုင်သည် ပို့ပြီး **၂ မိနစ်ပြည့်ပါက အလိုအလျောက် ပျက်သွားမည်** ဖြစ်သည်။ "
+        "ထို့ကြောင့် ဇာတ်ကားကို အပြီးသိမ်းထားလိုပါက ပို့ပေးထားသော ဖိုင်ကို ဖိနှိပ်၍ မိမိ၏ **Saved Messages** (သိမ်းဆည်းထားသော မက်ဆေ့ခ်ျများ) ထဲသို့ ချက်ချင်း **Forward (လက်ဆင့်ကမ်း)** လုပ်ပြီး သိမ်းဆည်းထားပါဗျာ။\n\n"
+        "👑 **VIP Movie Channel အစီအစဉ်** 👑\n"
+        "တရုတ်/ကိုရီးယားဇာတ်လမ်းတွဲများ၊ အသစ်ထွက်ရုပ်ရှင်များနှင့် Netflix မှရုပ်ရှင်များကို "
+        "တစ်လ ၅,၀၀၀ ကျပ်တည်းဖြင့် VIP Member အဖြစ်ဝင်ရောက်ကြည့်ရှုနိုင်ပါတယ်ဗျာ။\n\n"
+        "👉 VIP ဝင်ရန် Admin acc - @Lynn_subflix528 ကို ဆက်သွယ်လိုက်ပါဗျို့။"
+    )
+    
+    # VIP စာသားကို အရင်ပို့ခြင်း
+    bot.send_message(chat_id, welcome_text)
+    
+    # လင့်ခ်ကနေ ဇာတ်ကား ID ပါလာခဲ့လျှင် (ဥပမာ စမ်းသပ်ရန်)
+    if len(command_args) > 1:
+        movie_id = command_args[1]
+        
+        # ဇာတ်ကားဖိုင် တိုက်ရိုက်ပို့ခြင်း (ဤနေရာတွင် ဇာတ်ကားဖိုင် ပို့မည့်ကုဒ် ထည့်ရမည်)
+        # ဥပမာ - bot.send_video(chat_id, video=movie_file_id)
+        sent_movie = bot.send_message(chat_id, f"🎬 [ဒီနေရာတွင် သင့်ဇာတ်ကားဖိုင် ပေါ်လာမည် - Movie ID: {movie_id}]")
+        
+        # ပို့ပြီးတာနဲ့ ၂ မိနစ်ပြည့်ရင် ဖျက်ဖို့ Thread မောင်းလိုက်ခြင်း
+        threading.Thread(target=auto_delete_message, args=(chat_id, sent_movie.message_id)).start()
 
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    threading.Thread(target=lambda: bot.infinity_polling(timeout=10, long_polling_timeout=5)).start()
-    app.run(host='0.0.0.0', port=port)
+# အခြား စာရိုက်မှုများကို တုံ့ပြန်ရန်
+@bot.message_handler(func=lambda message: True)
+def echo_all(message):
+    bot.reply_to(message, "ဇာတ်ကားများကို Channel ထဲရှိ လင့်ခ်များမှတစ်ဆင့် တိုက်ရိုက် ရယူနိုင်ပါသည် ခင်ဗျာ။")
+
+# Render Webhook ရယူခြင်း
+@app.route('/' + BOT_TOKEN, methods=['POST'])
+def getMessage():
+    json_string = request.get_data().decode('utf-8')
+    update = telebot.types.Update.de_json(json_string)
+    bot.process_new_updates([update])
+    return "!", 200
+
+@app.route("/")
+def webhook():
+    bot.remove_webhook()
+    bot.set_webhook(url='https://subflix-movies-bot.onrender.com/' + BOT_TOKEN)
+    return "Bot is running!", 200
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get('PORT', 5000)))
