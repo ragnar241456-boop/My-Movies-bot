@@ -4,8 +4,9 @@ import threading
 import telebot
 from flask import Flask, request
 
-# Telegram Bot Token သတ်မှတ်ခြင်း
+# Telegram Bot Token နှင့် Storage Channel ID သတ်မှတ်ခြင်း
 BOT_TOKEN = "8609626698:AAFX9be-pwkM7nn_vMRTwx-1ut97HfMhhmQ"
+STORAGE_CHANNEL_ID = -1004321974022  # သင့် Private Channel ID
 bot = telebot.TeleBot(BOT_TOKEN)
 
 # Webhook အတွက် Flask App
@@ -44,31 +45,36 @@ def send_movie_and_vip_info(message):
         
     # အခြေအနေ ၂ - Public Channel ကနေ ဇာတ်ကားလင့်ခ်နှိပ်ပြီး ရောက်လာသူ
     else:
-        movie_id = command_args[1]
-        
-        # ၁။ ပထမစာသား အရင်ပို့ခြင်း
-        first_msg = bot.send_message(chat_id, "မင်္ဂလာပါ။ 🎬 ဇာတ်ကားကို သင့်အတွက် အောက်မှာ တိုက်ရိုက် ပို့ပေးထားပါတယ်။")
-        
-        # ၂။ ဇာတ်ကားဖိုင် ပို့ခြင်း (လောလောဆယ် စမ်းသပ်စာသား ပို့ထားမည်၊ ဗီဒီယိုပို့လျှင် bot.send_video သုံးပါ)
-        sent_movie = bot.send_message(chat_id, f"🎬 [ဒီနေရာတွင် သင့်ဇာတ်ကားဖိုင် ပေါ်လာမည် - Movie ID: {movie_id}]")
-        
-        # ဇာတ်ကားရောက်တာနဲ့ ပထမစာသားကို ချက်ချင်းဖျက်ပစ်ခြင်း
         try:
-            bot.delete_message(chat_id, first_msg.message_id)
-        except Exception as e:
-            print(f"Error deleting first message: {e}")
+            movie_message_id = int(command_args[1]) # လင့်ခ်ထဲက ပါလာတဲ့ Message ID (ဥပမာ - 5)
             
-        # ၃။ ဒုတိယ သတိပေးချက်စာသားကို ပို့ခြင်း
-        warning_text = (
-            "⚠️ **သတိပေးချက်** ⚠️\n"
-            "မူပိုင်ခွင့် (Copyright) ဥပဒေအရ ဤဇာတ်ကားဖိုင်သည် ပို့ပြီး **၂ မိနစ်ပြည့်ပါက အလိုအလျောက် ပျက်သွားမည်** ဖြစ်သည်။ "
-            "ထို့ကြောင့် ဇာတ်ကားကို အပြီးသိမ်းထားလိုပါက ပို့ပေးထားသော ဖိုင်ကို ဖိနှိပ်၍ မိမိ၏ **Saved Messages** (သိမ်းဆည်းထားသော မက်ဆေ့ခ်ျများ) ထဲသို့ ချက်ချင်း **Forward (လက်ဆင့်ကမ်း)** လုပ်ပြီး သိမ်းဆည်းထားပါဗျာ။\n\n" + vip_text
-        )
-        second_msg = bot.send_message(chat_id, warning_text)
-        
-        # ၄။ ဇာတ်ကားဖိုင်ရော၊ သတိပေးချက်စာသားပါ ၂ မိနစ်ပြည့်ရင် ဖျက်ရန် Thread မောင်းခြင်း
-        threading.Thread(target=auto_delete_message, args=(chat_id, sent_movie.message_id)).start()
-        threading.Thread(target=auto_delete_message, args=(chat_id, second_msg.message_id)).start()
+            # ၁။ ပထမစာသား အရင်ပို့ခြင်း
+            first_msg = bot.send_message(chat_id, "မင်္ဂလာပါ။ 🎬 ဇာတ်ကားကို သင့်အတွက် အောက်မှာ တိုက်ရိုက် ပို့ပေးထားပါတယ်ဗျာ။")
+            
+            # ၂။ Private Channel ထဲက ဗီဒီယိုဖိုင်ကို အသုံးပြုသူဆီ တိုက်ရိုက် Forward လှမ်းလုပ်ခြင်း
+            sent_movie = bot.forward_message(chat_id, from_chat_id=STORAGE_CHANNEL_ID, message_id=movie_message_id)
+            
+            # ဇာတ်ကားရောက်တာနဲ့ ပထမစာသားကို ချက်ချင်းပြန်ဖျက်ပစ်ခြင်း
+            try:
+                bot.delete_message(chat_id, first_msg.message_id)
+            except Exception as e:
+                print(f"Error deleting first message: {e}")
+                
+            # ၃။ ဒုတိယ သတိပေးချက်စာသားကို ပို့ခြင်း
+            warning_text = (
+                "⚠️ **သတိပေးချက်** ⚠️\n"
+                "မူပိုင်ခွင့် (Copyright) ဥပဒေအရ ဤဇာတ်ကားဖိုင်သည် ပို့ပြီး **၂ မိနစ်ပြည့်ပါက အလိုအလျောက် ပျက်သွားမည်** ဖြစ်သည်။ "
+                "ထို့ကြောင့် ဇာတ်ကားကို အပြီးသိမ်းထားလိုပါက ပို့ပေးထားသော ဖိုင်ကို ဖိနှိပ်၍ မိမိ၏ **Saved Messages** (သိမ်းဆည်းထားသော မက်ဆေ့ခ်ျများ) ထဲသို့ ချက်ချင်း **Forward (လက်ဆင့်ကမ်း)** လုပ်ပြီး သိမ်းဆည်းထားပါဗျာ။\n\n" + vip_text
+            )
+            second_msg = bot.send_message(chat_id, warning_text)
+            
+            # ၄။ ဇာတ်ကားဖိုင်ရော၊ သတိပေးချက်စာသားပါ ၂ မိနစ်ပြည့်ရင် ဖျက်ရန် Thread မောင်းခြင်း
+            threading.Thread(target=auto_delete_message, args=(chat_id, sent_movie.message_id)).start()
+            threading.Thread(target=auto_delete_message, args=(chat_id, second_msg.message_id)).start()
+            
+        except Exception as e:
+            bot.send_message(chat_id, "⚠️ ဇာတ်ကားရှာဖွေရာတွင် အမှားအယွင်းတစ်ခု ရှိသွားပါသည်။ လင့်ခ်မှန်ကန်မှု ရှိမရှိ ပြန်လည်စစ်ဆေးပေးပါ။")
+            print(f"Error forwarding movie: {e}")
 
 # အခြား စာရိုက်မှုများကို တုံ့ပြန်ရန်
 @bot.message_handler(func=lambda message: True)
