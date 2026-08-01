@@ -9,8 +9,9 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "8609626698:AAFX9be-pwkM7nn_vMRTwx-1ut97HfMhhmQ")
 STORAGE_CHANNEL_ID = -1004321974022  # သင့် Private Channel ID
 
-# Force Join စစ်ဆေးမည့် Public Channel Username
-FORCE_SUB_CHANNEL = "@subflix_mm" 
+# Force Join စစ်ဆေးမည့် Public Channel များ
+MAIN_SUB_CHANNEL = "@subflix_mm"         # Main Public Channel
+MARVEL_SUB_CHANNEL = "@mmsubflix_marvel"  # Marvel Public Channel
 
 bot = telebot.TeleBot(BOT_TOKEN, threaded=False)
 
@@ -18,24 +19,27 @@ bot = telebot.TeleBot(BOT_TOKEN, threaded=False)
 app = Flask(__name__)
 
 # User Channel ဝင်ထားခြင်း ရှိ/မရှိ စစ်ဆေးသည့် Helper Function
-def is_user_joined(user_id):
+def is_user_joined(user_id, target_channel):
     try:
-        member = bot.get_chat_member(FORCE_SUB_CHANNEL, user_id)
+        member = bot.get_chat_member(target_channel, user_id)
         if member.status in ['creator', 'administrator', 'member']:
             return True
         return False
     except Exception as e:
-        print(f"Error checking channel membership: {e}")
+        print(f"Error checking channel membership for {target_channel}: {e}")
         # Bot ကို Admin မခန့်ထားပါက သို့မဟုတ် Username မှားနေပါက Error မတက်ဘဲ Pass ပေးမည်
         return True
 
 # Channel မဝင်ရသေးပါက ပြသမည့် Message နှင့် Button များ
-def send_force_sub_message(chat_id, start_param=""):
+def send_force_sub_message(chat_id, target_channel, start_param=""):
     markup = InlineKeyboardMarkup()
     
     # Channel သို့ သွားရန် Link ခလုတ်
-    channel_url = f"https://t.me/{FORCE_SUB_CHANNEL.replace('@', '')}"
-    join_btn = InlineKeyboardButton("📢 Public Channel သို့ဝင်ရန်", url=channel_url)
+    channel_username = target_channel.replace('@', '')
+    channel_url = f"https://t.me/{channel_username}"
+    
+    channel_title = "Marvel Channel" if target_channel == MARVEL_SUB_CHANNEL else "Public Channel"
+    join_btn = InlineKeyboardButton(f"📢 {channel_title} သို့ဝင်ရန်", url=channel_url)
     
     # Channel Join ပြီးပါက ပြန်လည် စစ်ဆေးမည့် ခလုတ်
     cb_data = f"check_sub_{start_param}" if start_param else "check_sub"
@@ -46,7 +50,7 @@ def send_force_sub_message(chat_id, start_param=""):
     
     force_text = (
         "⚠️ **သတိပေးချက်** ⚠️\n\n"
-        "ဇာတ်ကား/စီးရီးများကို ကြည့်ရှုနိုင်ရန်အတွက် ကျွန်ုပ်တို့၏ **Public Channel** ကို အရင် **Join** ပေးထားရန် လိုအပ်ပါသည်ဗျာ။\n\n"
+        f"ဇာတ်ကား/စီးရီးများကို ကြည့်ရှုနိုင်ရန်အတွက် ကျွန်ုပ်တို့၏ **{channel_title}** ကို အရင် **Join** ပေးထားရန် လိုအပ်ပါသည်ဗျာ။\n\n"
         "အောက်ပါ ခလုတ်ကို နှိပ်၍ Channel ထဲသို့ ဝင်ရောက်ပြီးပါက **'✅ Joined'** ခလုတ်ကို နှိပ်ပါ။"
     )
     bot.send_message(chat_id, force_text, reply_markup=markup, parse_mode="Markdown")
@@ -59,11 +63,11 @@ def auto_delete_message(chat_id, message_id):
     except Exception as e:
         print(f"Error deleting message: {e}")
 
-# VIP ကြော်ငြာစာသား (ဈေးနှုန်း ပြင်ဆင်ထားသည်)
+# VIP ကြော်ငြာစာသား (တစ်သက်တာ ၁၀,၀၀၀ ကျပ်သို့ ပြင်ဆင်ထားသည်)
 VIP_TEXT = (
     "👑 **VIP Movie Channel အစီအစဉ်** 👑\n"
     "တရုတ်/ကိုရီးယားဇာတ်လမ်းတွဲများ၊ အသစ်ထွက်ရုပ်ရှင်များနှင့် Netflix မှရုပ်ရှင်များကို "
-    "**၁ လလျှင် ၃,၀၀၀ ကျပ် / ၃ လလျှင် ၅,၀၀၀ ကျပ်** ဖြင့် VIP Member အဖြစ်ဝင်ရောက်ကြည့်ရှုနိုင်ပါတယ်ဗျာ။\n\n"
+    "**တစ်သက်တာလုံးစာ ၁၀,၀၀၀ ကျပ်** ဖြင့် VIP Member အဖြစ် ဝင်ရောက်ကြည့်ရှုနိုင်ပါတယ်ဗျာ။\n\n"
     "👉 VIP ဝင်ရန် Admin acc - @Lynn_subflix528 ကို ဆက်သွယ်လိုက်ပါဗျို့။"
 )
 
@@ -75,9 +79,13 @@ def send_movie_and_vip_info(message):
     command_args = message.text.split()
     param = command_args[1].strip() if len(command_args) > 1 else ""
 
+    # ဘာ Channel Join ခိုင်းမလဲ ခွဲခြားခြင်း (Marvel သို့မဟုတ် Main)
+    is_marvel = param.startswith("marvel_")
+    target_channel = MARVEL_SUB_CHANNEL if is_marvel else MAIN_SUB_CHANNEL
+
     # Force Join စစ်ဆေးခြင်း
-    if not is_user_joined(user_id):
-        send_force_sub_message(chat_id, param)
+    if not is_user_joined(user_id, target_channel):
+        send_force_sub_message(chat_id, target_channel, param)
         return
 
     # အခြေအနေ ၁ - ဒီအတိုင်း /start နှိပ်ပြီး ဝင်လာသူကို Public Channel Link ပြရန်
@@ -85,16 +93,19 @@ def send_movie_and_vip_info(message):
         welcome_text = (
             "မင်္ဂလာပါ။ 🎬 SubFlix Movies Bot မှ ကြိုဆိုပါတယ်ဗျာ။\n"
             "ဇာတ်ကားများကို ကျွန်ုပ်တို့၏ Public Channel ထဲရှိ လင့်ခ်များမှတစ်ဆင့် တိုက်ရိုက် ရယူကြည့်ရှုနိုင်ပါတယ်ဗျာ။\n\n"
-            f"🔗 **ကျွန်ုပ်တို့၏ Public Channel သို့ဝင်ရန် -** https://t.me/{FORCE_SUB_CHANNEL.replace('@', '')}\n\n" + VIP_TEXT
+            f"🔗 **ကျွန်ုပ်တို့၏ Public Channel သို့ဝင်ရန် -** https://t.me/{MAIN_SUB_CHANNEL.replace('@', '')}\n\n" + VIP_TEXT
         )
         bot.send_message(chat_id, welcome_text)
         
-    # အခြေအနေ ၂ - Public Channel ကနေ ဇာတ်ကားလင့်ခ်နှိပ်ပြီး ရောက်လာသူ
+    # အခြေအနေ ၂ - Channel ကနေ ဇာတ်ကားလင့်ခ်နှိပ်ပြီး ရောက်လာသူ
     else:
-        # (A) စီးရီးအလိုက် ပို့ပေးမည့် စနစ် (ဥပမာ - ?start=series_44_59)
-        if param.startswith("series_"):
+        # Link ထဲမှ marvel_ Prefix ပါပါက ရှင်းထုတ်ပြီး မူရင်း Parameter ယူခြင်း
+        clean_param = param.replace("marvel_", "") if is_marvel else param
+
+        # (A) စီးရီးအလိုက် ပို့ပေးမည့် စနစ် (ဥပမာ - ?start=series_44_59 သို့မဟုတ် ?start=marvel_series_44_59)
+        if clean_param.startswith("series_"):
             try:
-                parts = param.split("_")
+                parts = clean_param.split("_")
                 start_id = int(parts[1])
                 end_id = int(parts[2])
 
@@ -128,10 +139,10 @@ def send_movie_and_vip_info(message):
                 bot.send_message(chat_id, "⚠️ စီးရီး ရှာဖွေရာတွင် အမှားအယွင်းတစ်ခု ရှိသွားပါသည်။ လင့်ခ်မှန်ကန်မှု ရှိမရှိ ပြန်လည်စစ်ဆေးပေးပါ။")
                 print(f"Error forwarding series: {e}")
 
-        # (B) တစ်ကားတည်း / အပိုင်းတစ်ခုတည်း ပို့ပေးမည့် စနစ် (ဥပမာ - ?start=44)
+        # (B) တစ်ကားတည်း / အပိုင်းတစ်ခုတည်း ပို့ပေးမည့် စနစ် (ဥပမာ - ?start=44 သို့မဟုတ် ?start=marvel_44)
         else:
             try:
-                movie_message_id = int(param)
+                movie_message_id = int(clean_param)
                 
                 # ၁။ ပထမစာသား အရင်ပို့ခြင်း
                 first_msg = bot.send_message(chat_id, "မင်္ဂလာပါ။ 🎬 ဇာတ်ကားကို သင့်အတွက် အောက်မှာ တိုက်ရိုက် ပို့ပေးထားပါတယ်ဗျာ။")
@@ -167,7 +178,14 @@ def callback_check_sub(call):
     user_id = call.from_user.id
     chat_id = call.message.chat.id
     
-    if is_user_joined(user_id):
+    # Param ယူခြင်း
+    param_data = call.data.replace("check_sub_", "").replace("check_sub", "").strip()
+    
+    # ဘာ Channel စစ်ရမည်လဲ ဆုံးဖြတ်ခြင်း
+    is_marvel = param_data.startswith("marvel_")
+    target_channel = MARVEL_SUB_CHANNEL if is_marvel else MAIN_SUB_CHANNEL
+
+    if is_user_joined(user_id, target_channel):
         bot.answer_callback_query(call.id, "✅ ကျေးဇူးတင်ပါတယ်! Channel Join ပြီးပါပြီ။")
         try:
             bot.delete_message(chat_id, call.message.message_id)
@@ -175,19 +193,19 @@ def callback_check_sub(call):
             pass
         
         # User နှိပ်ခဲ့သည့် Param အတိုင်း ပြန်လည် ပို့ပေးခြင်း
-        param_data = call.data.replace("check_sub_", "").replace("check_sub", "")
         fake_message = call.message
         fake_message.text = f"/start {param_data}".strip()
         fake_message.from_user = call.from_user
         
         send_movie_and_vip_info(fake_message)
     else:
-        bot.answer_callback_query(call.id, "⚠️ မဝင်ရသေးပါဘူး! ကျေးဇူးပြု၍ Channel ကို အရင် Join ပေးပါနော်။", show_alert=True)
+        channel_title = "Marvel Channel" if is_marvel else "Public Channel"
+        bot.answer_callback_query(call.id, f"⚠️ မဝင်ရသေးပါဘူး! ကျေးဇူးပြု၍ {channel_title} ကို အရင် Join ပေးပါနော်။", show_alert=True)
 
 # အခြား စာရိုက်မှုများကို တုံ့ပြန်ရန်
 @bot.message_handler(func=lambda message: True)
 def echo_all(message):
-    bot.reply_to(message, f"ဇာတ်ကားများကို ကျွန်ုပ်တို့၏ Public Channel (https://t.me/{FORCE_SUB_CHANNEL.replace('@', '')}) ထဲရှိ လင့်ခ်များမှတစ်ဆင့် တိုက်ရိုက် ရယူနိုင်ပါသည် ခင်ဗျာ။")
+    bot.reply_to(message, f"ဇာတ်ကားများကို ကျွန်ုပ်တို့၏ Public Channel (https://t.me/{MAIN_SUB_CHANNEL.replace('@', '')}) ထဲရှိ လင့်ခ်များမှတစ်ဆင့် တိုက်ရိုက် ရယူနိုင်ပါသည် ခင်ဗျာ။")
 
 # Render Webhook ရယူခြင်း
 @app.route('/' + BOT_TOKEN, methods=['POST'])
